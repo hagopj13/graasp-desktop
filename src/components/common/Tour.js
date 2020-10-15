@@ -7,7 +7,7 @@ import { withTranslation } from 'react-i18next';
 import {
   completeTour,
   initializeTour,
-  navigateStopTour,
+  stopTourAndNavigate,
   goToNextStep,
   resetTour,
   startTour,
@@ -17,7 +17,6 @@ import {
   AUTHENTICATED,
   EXAMPLE_VISIT_SPACE_LINK,
   THEME_COLORS,
-  TOUR_DELAY_500,
   TOUR_DELAY_750,
   TOUR_Z_INDEX,
   USER_MODES,
@@ -33,14 +32,15 @@ import {
   tours,
   VISIT_SPACE_TOUR_STEPS,
 } from '../../config/tours';
+import { handleStartTour } from '../../utils/tour';
 
 // eslint-disable-next-line react/prefer-stateless-function
 export class Tour extends Component {
   static propTypes = {
-    dispatchNextStep: PropTypes.func.isRequired,
+    dispatchGoToNextStep: PropTypes.func.isRequired,
     dispatchStartTour: PropTypes.func.isRequired,
-    dispatchNavigateAndStopTour: PropTypes.func.isRequired,
-    dispatchTourCompleted: PropTypes.func.isRequired,
+    dispatchStopTourAndNavigate: PropTypes.func.isRequired,
+    dispatchCompleteTour: PropTypes.func.isRequired,
     dispatchResetTour: PropTypes.func.isRequired,
     dispatchInitializeTour: PropTypes.func.isRequired,
     tourKey: PropTypes.string.isRequired,
@@ -133,20 +133,20 @@ export class Tour extends Component {
       stepIndex,
       steps,
       dispatchStartTour,
-      dispatchNextStep,
-      dispatchNavigateAndStopTour,
-      dispatchTourCompleted,
+      dispatchGoToNextStep,
+      dispatchStopTourAndNavigate,
+      dispatchCompleteTour,
       currentTour,
       t,
     } = this.props;
-    const callback = async data => {
+    const callback = async (data) => {
       const { action, index, type, status } = data;
       if (
         action === ACTIONS.CLOSE ||
         (status === STATUS.SKIPPED && run) ||
         status === STATUS.FINISHED
       ) {
-        dispatchTourCompleted(currentTour);
+        dispatchCompleteTour(currentTour);
       } else if (
         type === EVENTS.STEP_AFTER ||
         type === EVENTS.TARGET_NOT_FOUND
@@ -157,49 +157,46 @@ export class Tour extends Component {
             switch (newStepIndex) {
               case 1:
                 push(VISIT_PATH);
-                dispatchNavigateAndStopTour(newStepIndex);
+                dispatchStopTourAndNavigate(newStepIndex);
                 await waitForElement({
                   selector: `.${VISIT_SPACE_INPUT_CLASS}`,
                 });
                 document.getElementById(DRAWER_BUTTON_ID).click();
-                setTimeout(() => dispatchStartTour(), TOUR_DELAY_500);
+                handleStartTour(dispatchStartTour);
                 break;
               case 2:
                 replace(EXAMPLE_VISIT_SPACE_LINK);
-                dispatchNavigateAndStopTour(newStepIndex);
+                dispatchStopTourAndNavigate(newStepIndex);
                 await waitForElement({
                   selector: `.${SPACE_PREVIEW_ICON_CLASS}`,
                 });
                 dispatchStartTour();
                 break;
               case 3:
-                dispatchNextStep(newStepIndex);
-                break;
-              case 4:
-                dispatchNextStep(newStepIndex);
+                dispatchGoToNextStep(newStepIndex);
                 break;
               case 5:
               default:
-                dispatchTourCompleted(tours.VISIT_SPACE_TOUR);
+                dispatchCompleteTour(tours.VISIT_SPACE_TOUR);
                 break;
             }
             break;
           case tours.SETTINGS_TOUR:
             switch (newStepIndex) {
               case 1:
-                dispatchNextStep(newStepIndex);
+                dispatchGoToNextStep(newStepIndex);
                 break;
               case 2:
-                dispatchNextStep(newStepIndex);
+                dispatchGoToNextStep(newStepIndex);
                 break;
               case 3:
               default:
-                dispatchTourCompleted(tours.SETTINGS_TOUR);
+                dispatchCompleteTour(tours.SETTINGS_TOUR);
                 break;
             }
             break;
           default:
-            dispatchTourCompleted(tours.VISIT_SPACE_TOUR);
+            dispatchCompleteTour(tours.VISIT_SPACE_TOUR);
         }
       }
     };
@@ -252,10 +249,10 @@ const mapStateToProps = ({ tour, authentication }) => ({
 });
 
 const mapDispatchToProps = {
-  dispatchNextStep: goToNextStep,
+  dispatchGoToNextStep: goToNextStep,
   dispatchStartTour: startTour,
-  dispatchNavigateAndStopTour: navigateStopTour,
-  dispatchTourCompleted: completeTour,
+  dispatchStopTourAndNavigate: stopTourAndNavigate,
+  dispatchCompleteTour: completeTour,
   dispatchResetTour: resetTour,
   dispatchInitializeTour: initializeTour,
 };
